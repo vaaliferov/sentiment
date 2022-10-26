@@ -1,0 +1,37 @@
+sudo apt install docker.io
+sudo apt install docker-compose
+
+sudo groupadd docker
+sudo usermod -aG docker ${USER}
+sudo systemctl restart docker
+sudo chmod 666 /var/run/docker
+
+sudo systemctl start docker
+sudo systemctl status docker
+
+docker network create sentiment-net
+
+cd bot && docker build -t bot .
+cd app && docker build -t app .
+
+docker run --rm  --net sentiment-net --name bot bot
+docker run --rm  --net sentiment-net --name app -p 5000:5000 app
+
+docker run --rm --net sentiment-net --name model -p 8501:8501 \
+    --mount type=bind,source=$(pwd),target=$(pwd) \
+    -e MODEL_BASE_PATH=$(pwd)/model \
+    -e MODEL_NAME=saved_model -t tensorflow/serving:2.8.0
+
+docker images
+docker ps -a
+docker stop model
+docker network ls
+
+docker network rm sentiment-net
+docker rm -f $(docker ps -a -q)
+docker rmi $(docker images -a -q)
+
+docker-compose build
+docker-compose up -d
+docker-compose down
+docker-compose ps

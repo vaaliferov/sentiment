@@ -1,0 +1,5 @@
+http://139.185.47.42:5000/app.html
+https://t.me/vaaliferov_sentiment_bot
+
+LD_PRELOAD=/home/ubuntu/.local/lib/python3.8/site-packages/torch/lib/libgomp-d22c30c5.so.1 python3 save_model.py
+LD_PRELOAD=/home/ubuntu/.local/lib/python3.8/site-packages/torch/lib/libgomp-d22c30c5.so.1 docker-compose build

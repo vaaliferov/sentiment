@@ -1,0 +1,3 @@
+numpy
+transformers
+python-telegram-bot

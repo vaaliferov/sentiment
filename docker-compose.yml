@@ -1,0 +1,46 @@
+version: "3.7"
+services:
+  app:
+    container_name: app
+    restart: always
+    build:
+      context: ./app
+      dockerfile: dockerfile
+    depends_on:
+      - model
+    ports:
+      - 5000:5000
+    networks:
+      sentiment-net:
+        aliases:
+          - app
+  bot:
+    container_name: bot
+    restart: always
+    build:
+      context: ./bot
+      dockerfile: dockerfile
+    depends_on:
+      - model
+    networks:
+      sentiment-net:
+        aliases:
+          - bot
+  model:
+    image: tensorflow/serving:2.8.0
+    container_name: model
+    restart: always
+    ports:
+      - '8500:8500'
+      - '8501:8501'
+    volumes:
+      - type: bind
+        source: ./model/saved_model
+        target: /models/model
+    networks:
+      sentiment-net:
+        aliases:
+          - model
+networks:
+  sentiment-net:
+    driver: bridge
