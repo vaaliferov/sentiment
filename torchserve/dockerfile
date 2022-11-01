@@ -1,0 +1,5 @@
+FROM pytorch/torchserve:latest
+RUN pip3 install transformers
+COPY model-store /home/model-server/model-store/
+COPY config.properties /home/model-server/config.properties
+CMD ["torchserve", "--start", "--models my_bert=my_bert.mar", "--ts-config /home/model-server/config.properties"]

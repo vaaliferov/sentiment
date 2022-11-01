@@ -1,0 +1,89 @@
+
+git clone https://github.com/pytorch/serve && cd serve
+python3 ./ts_scripts/install_dependencies.py
+pip3 install torchserve torch-model-archiver torch-workflow-archiver
+
+docker pull pytorch/torchserve
+
+https://github.com/pytorch/serve/tree/master/docker
+https://github.com/pytorch/serve#-quick-start-with-docker
+https://github.com/pytorch/serve#-quick-start-with-torchserve
+https://pytorch.org/serve/management_api.html#list-models
+https://medium.com/@SrGrace_/a-practical-guide-to-torchserve-197ec913bbd
+https://github.com/pytorch/serve/tree/master/examples/Huggingface_Transformers
+
+pip3 install transformers
+
+cd examples/Huggingface_Transformers
+
+vim setup_config.json
+"model_name":"Tatyana/rubert-base-cased-sentiment-new",
+"num_labels":"3",
+
+vim Seq_classification_artifacts/index_to_name.json
+{"0":"NEUTRAL","1":"POSITIVE","2":"NEGATIVE"}
+
+python3 Download_Transformer_models.py
+
+torch-model-archiver --model-name BERTSeqClassification --version 1.0 --serialized-file Transformer_model/pytorch_model.bin --handler ./Transformer_handler_generalized.py --extra-files "Transformer_model/config.json,./setup_config.json,./Seq_classification_artifacts/index_to_name.json"
+
+mkdir model_store && mv BERTSeqClassification.mar model_store
+
+torchserve --start --model-store model_store --ncs
+torchserve --stop
+
+curl -X POST "http://127.0.0.1:8081/models?model_name=my_bert&url=BERTSeqClassification.mar&batch_size=4&max_batch_delay=100&initial_workers=3&synchronous=true"
+
+curl -X DELETE http://localhost:8081/models/my_bert
+
+curl http://localhost:8080/ping
+curl http://localhost:8081/models
+curl http://localhost:8081/models/my_bert
+curl -v -X PUT http://localhost:8081/models/my_bert?min_worker=2
+
+curl -X POST http://localhost:8080/predictions/my_bert -T Seq_classification_artifacts/sample_text_captum_input.txt
+curl -X POST http://localhost:8080/explanations/my_bert -T Seq_classification_artifacts/sample_text_captum_input.txt
+curl -X POST http://localhost:8080/predictions/my_bert -H 'Content-Type: application/json' -d '{"text":"I love you!","request_id":"test"}'
+
+
+vim config.properties
+---------------------
+inference_address=http://127.0.0.1:8080
+management_address=http://127.0.0.1:8081
+metrics_address=http://127.0.0.1:8082
+model_store=model_store/
+number_of_netty_threads=4
+netty_client_thread=4
+default_workers_per_model=1
+max_request_size=26214400
+max_response_size=26214400
+models={\
+  "my_bert": {\
+    "1.0": {\
+        "defaultVersion": true,\
+        "marName": "BERTSeqClassification.mar",\
+        "minWorkers": 1,\
+        "maxWorkers": 3,\
+        "batchSize": 5,\
+        "maxBatchDelay": 200,\
+        "responseTimeout": 120\
+    }\
+  }\
+}
+---------------------
+torchserve --start --ts-config config.properties --models my_bert=BERTSeqClassification.mar
+
+
+
+docker run --rm -it -p 8080:8080 -p 8081:8081 -p 8082:8082 -p 7070:7070 -p 7071:7071 --mount type=bind,source=/home/vaaliferov/github/serve/examples/Huggingface_Transformers/model_store,target=/tmp/models pytorch/torchserve:latest torchserve --model-store=/tmp/models --models my_bert=BERTSeqClassification.mar --ncs
+
+
+git clone https://github.com/pytorch/serve.git && cd serve/docker
+vim config.properties
+
+
+https://rpadovani.com/pytorch-docker-image
+https://supertype.ai/notes/serving-pytorch-w-torchserve/
+
+
+
